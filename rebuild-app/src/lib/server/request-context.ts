@@ -16,6 +16,7 @@ export async function resolveServerContext(): Promise<AppContext> {
       userId: demoContext.userId,
       role: roleHeader || demoContext.role,
       activeCompanyId,
+      companyGateSeenInSession: demoContext.companyGateSeenInSession,
     };
   }
 
@@ -28,6 +29,7 @@ export async function resolveServerContext(): Promise<AppContext> {
       userId: decoded.uid,
       role,
       activeCompanyId,
+      companyGateSeenInSession: true,
     };
   } catch {
     return {
@@ -35,6 +37,7 @@ export async function resolveServerContext(): Promise<AppContext> {
       userId: demoContext.userId,
       role: roleHeader || demoContext.role,
       activeCompanyId,
+      companyGateSeenInSession: demoContext.companyGateSeenInSession,
     };
   }
 }

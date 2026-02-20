@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
+import { useAppState } from '@/components/shell/app-state';
 import { firebaseStorage } from '@/lib/firebase/client';
+import { updateCompany } from '@/lib/firebase/company-store';
 
 type IntakeStep = {
   key: string;
@@ -132,6 +134,7 @@ function storageKey(companyId: string) {
 }
 
 export function IntakeWizard({ companyId }: { companyId: string }) {
+  const { appContext } = useAppState();
   const [initialState] = useState(() => {
     if (typeof window === 'undefined') {
       return { stepIndex: 0, answers: {} as Record<string, string>, uploadLog: [] as string[] };
@@ -178,7 +181,7 @@ export function IntakeWizard({ companyId }: { companyId: string }) {
         continue;
       }
 
-      const path = `workspaces/workspace-demo/companies/${companyId}/references/${Date.now()}-${file.name}`;
+      const path = `workspaces/${appContext.workspaceId}/companies/${companyId}/references/${Date.now()}-${file.name}`;
       const fileRef = ref(firebaseStorage, path);
       await new Promise<void>((resolve, reject) => {
         const task = uploadBytesResumable(fileRef, file);
@@ -208,10 +211,9 @@ export function IntakeWizard({ companyId }: { companyId: string }) {
     };
 
     try {
-      await fetch(`/api/companies/${companyId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ meta: { intake: payload } }),
+      await updateCompany(appContext.workspaceId, companyId, {
+        aiContextCompiled: JSON.stringify(payload),
+        completionScore: Math.max(progress, 10),
       });
       setStatus('Progress saved.');
     } catch (error) {

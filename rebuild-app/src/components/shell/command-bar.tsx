@@ -1,9 +1,9 @@
-﻿"use client";
+"use client";
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Command, Search } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Command, Search, Sparkles } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAppState } from '@/components/shell/app-state';
 
 type SearchResult = {
@@ -17,10 +17,15 @@ type SearchResult = {
 export function CommandBar() {
   const router = useRouter();
   const pathname = usePathname();
-  const { appContext, setAppContext } = useAppState();
+  const { appContext, companies, setActiveCompany, markCompanyGateSeen } = useAppState();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [open, setOpen] = useState(false);
+
+  const activeCompany = useMemo(
+    () => companies.find((company) => company.id === appContext.activeCompanyId) || null,
+    [appContext.activeCompanyId, companies]
+  );
 
   useEffect(() => {
     const handle = (event: KeyboardEvent) => {
@@ -50,13 +55,13 @@ export function CommandBar() {
   }, [query]);
 
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-3 shadow-[var(--shadow)]">
+    <div className="command-bar">
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-[260px] flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
           <input
             className="h-10 w-full rounded-xl border border-[var(--border)] bg-[var(--panel-soft)] pl-9 pr-14 text-sm outline-none"
-            placeholder="Search entities, commands, routes..."
+            placeholder="Search companies, entities, commands..."
             value={query}
             onChange={(event) => {
               setQuery(event.target.value);
@@ -70,19 +75,34 @@ export function CommandBar() {
         </div>
 
         <select
-          className="h-10 min-w-[190px] rounded-xl border border-[var(--border)] bg-[var(--panel-soft)] px-3 text-sm"
+          className="h-10 min-w-[220px] rounded-xl border border-[var(--border)] bg-[var(--panel-soft)] px-3 text-sm"
           value={appContext.activeCompanyId || ''}
-          onChange={(event) => setAppContext({ ...appContext, activeCompanyId: event.target.value })}
+          onChange={(event) => {
+            const companyId = event.target.value || null;
+            setActiveCompany(companyId);
+            markCompanyGateSeen(Boolean(companyId));
+          }}
         >
-          <option value="company-aurora">Aurora Outdoors</option>
-          <option value="company-nova">Nova Creative</option>
-          <option value="company-ridge">Ridge Athletics</option>
+          <option value="" disabled>
+            {companies.length ? 'Select company' : 'No companies yet'}
+          </option>
+          {companies.map((company) => (
+            <option key={company.id} value={company.id}>
+              {company.name}
+            </option>
+          ))}
         </select>
 
         <div className="flex items-center gap-2">
+          <button
+            className="btn-ghost"
+            type="button"
+            onClick={() => router.push(`/select-company?next=${encodeURIComponent(pathname)}`)}
+          >
+            Switch Company
+          </button>
           <Link href="/build" className="btn-primary">New Post</Link>
           <Link href="/studio" className="btn-ghost">AI Studio</Link>
-          <Link href="/companies" className="btn-ghost">Companies</Link>
         </div>
       </div>
 
@@ -111,11 +131,12 @@ export function CommandBar() {
         </div>
       ) : null}
 
-      <div className="mt-2 flex items-center gap-2 text-xs text-[var(--muted)]">
+      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
         <span>Route:</span>
         <code className="rounded-md border border-[var(--border)] bg-[var(--panel-soft)] px-2 py-0.5">{pathname}</code>
         <span>Active company:</span>
-        <strong>{appContext.activeCompanyId || 'none'}</strong>
+        <strong>{activeCompany?.name || 'none selected'}</strong>
+        {activeCompany ? <Sparkles className="h-3.5 w-3.5 text-[var(--company-accent)]" /> : null}
       </div>
     </div>
   );

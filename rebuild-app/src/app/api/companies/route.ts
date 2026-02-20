@@ -24,6 +24,13 @@ export async function POST(request: Request) {
     slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
     status: 'draft',
     completionScore: 10,
+    coverAssetUrl: '',
+    branding: {
+      primary: '#5ba0ff',
+      secondary: '#29456f',
+      accent: '#99c6ff',
+    },
+    memberCount: 0,
     sections: {
       identity: { legalName: '', tagline: '', mission: '', mascot: '', primaryColors: [] },
       voice: { tone: '', dos: [], donts: [], ctaStyle: '', examples: [] },

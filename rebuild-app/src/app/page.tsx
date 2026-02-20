@@ -12,7 +12,7 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!loading && (!hasFirebaseClientConfig || user)) {
-      router.replace('/dashboard');
+      router.replace(hasFirebaseClientConfig ? '/select-company' : '/dashboard');
     }
   }, [loading, router, user]);
 
@@ -30,4 +30,3 @@ export default function HomePage() {
 
   return <AuthScreen defaultMode="signup" />;
 }
-

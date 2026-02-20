@@ -1,6 +1,8 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState } from 'react';
+import { useAppState } from '@/components/shell/app-state';
+import { updateCompany } from '@/lib/firebase/company-store';
 import type { CompanyProfile, CompanySectionState } from '@/types/interfaces';
 
 function stringify(value: unknown) {
@@ -15,30 +17,53 @@ function parseOrKeep(raw: string, fallback: unknown) {
   }
 }
 
+function compileSummary(company: CompanyProfile) {
+  return [
+    `Brand: ${company.name}`,
+    `Identity: ${company.sections.identity.tagline || 'n/a'}`,
+    `Voice: ${company.sections.voice.tone || 'n/a'}`,
+    `Visual: ${company.sections.visual.styleKeywords.join(', ') || 'n/a'}`,
+    `Audience: ${company.sections.audience.primaryPersona || 'n/a'}`,
+    `Content pillars: ${company.sections.content.pillars.join(', ') || 'n/a'}`,
+  ].join(' | ');
+}
+
 export function CompanyProfileEditor({ initialCompany }: { initialCompany: CompanyProfile }) {
+  const { appContext, setCompanies } = useAppState();
   const [company, setCompany] = useState(initialCompany);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
   const sectionNames = useMemo(() => ['identity', 'voice', 'visual', 'audience', 'content'] as const, []);
 
-  async function saveCompany() {
+  async function saveCompanyProfile() {
     setSaving(true);
     setStatus(null);
     try {
-      const res = await fetch(`/api/companies/${company.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(company),
-      });
-      if (!res.ok) throw new Error(await res.text());
+      const completion = Math.min(
+        100,
+        Math.round(
+          (sectionNames.reduce((acc, section) => {
+            const hasAny = Object.values(company.sections[section]).some((value) =>
+              Array.isArray(value) ? value.length > 0 : String(value || '').trim().length > 0
+            );
+            return acc + (hasAny ? 20 : 0);
+          }, 0) / 100) * 100
+        )
+      );
 
-      await fetch(`/api/companies/${company.id}/versions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notes: 'Profile editor save' }),
-      });
-      setStatus('Saved and version snapshot created.');
+      const next: CompanyProfile = {
+        ...company,
+        completionScore: completion,
+        aiContextCompiled: compileSummary(company),
+        updatedAt: new Date().toISOString(),
+        updatedBy: appContext.userId,
+      };
+
+      await updateCompany(appContext.workspaceId, company.id, next);
+      setCompany(next);
+      setCompanies((prev) => prev.map((entry) => (entry.id === next.id ? next : entry)));
+      setStatus('Saved profile changes.');
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Save failed');
     } finally {
@@ -51,7 +76,7 @@ export function CompanyProfileEditor({ initialCompany }: { initialCompany: Compa
       {sectionNames.map((section) => (
         <article className="panel" key={section}>
           <h3>{section.charAt(0).toUpperCase() + section.slice(1)}</h3>
-          <p className="text-sm text-[var(--muted)]">Edit JSON for now. This is persisted to Firestore when configured.</p>
+          <p className="text-sm text-[var(--muted)]">Edit section JSON directly for now.</p>
           <textarea
             value={stringify(company.sections[section])}
             onChange={(event) => {
@@ -69,7 +94,7 @@ export function CompanyProfileEditor({ initialCompany }: { initialCompany: Compa
       ))}
 
       <article className="panel two-col-span">
-        <h3>Prompt Packs</h3>
+        <h3>Prompt packs</h3>
         <textarea
           value={stringify(company.promptPacks)}
           onChange={(event) => {
@@ -78,21 +103,8 @@ export function CompanyProfileEditor({ initialCompany }: { initialCompany: Compa
           }}
         />
         <div className="button-row">
-          <button className="btn-primary" type="button" onClick={saveCompany} disabled={saving}>
+          <button className="btn-primary" type="button" onClick={saveCompanyProfile} disabled={saving}>
             {saving ? 'Saving...' : 'Save Company Profile'}
-          </button>
-          <button
-            className="btn-ghost"
-            type="button"
-            onClick={async () => {
-              const res = await fetch(`/api/companies/${company.id}/context-compile`, { method: 'POST' });
-              if (res.ok) {
-                const json = (await res.json()) as { data?: { compiledPrompt?: string } };
-                setStatus(`Compiled context: ${(json.data?.compiledPrompt || '').slice(0, 120)}...`);
-              }
-            }}
-          >
-            Compile AI Context
           </button>
         </div>
         {status ? <p className="text-sm text-[var(--muted)]">{status}</p> : null}
@@ -100,3 +112,4 @@ export function CompanyProfileEditor({ initialCompany }: { initialCompany: Compa
     </section>
   );
 }
+

@@ -13,7 +13,8 @@ export interface AppContext {
   workspaceId: string;
   userId: string;
   role: Role;
-  activeCompanyId?: string | null;
+  activeCompanyId: string | null;
+  companyGateSeenInSession: boolean;
 }
 
 export interface InspectorEntityPayload {
@@ -110,6 +111,13 @@ export interface CompanyProfile {
   slug: string;
   status: 'draft' | 'active';
   completionScore: number;
+  coverAssetUrl?: string;
+  branding: {
+    primary: string;
+    secondary?: string;
+    accent?: string;
+  };
+  memberCount: number;
   sections: CompanySectionState;
   promptPacks: Record<string, string[]>;
   aiContextCompiled?: string;
@@ -118,6 +126,54 @@ export interface CompanyProfile {
   updatedBy: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CompanyMember {
+  id: string;
+  companyId: string;
+  email: string;
+  uid?: string;
+  name?: string;
+  avatarUrl?: string;
+  role: Role;
+  status: 'pending' | 'active' | 'revoked';
+  invitedBy: string;
+  invitedAt: string;
+  joinedAt?: string;
+}
+
+export interface CompanyInvite {
+  id: string;
+  companyId: string;
+  email: string;
+  role: Role;
+  token: string;
+  status: 'pending' | 'accepted' | 'revoked' | 'expired';
+  expiresAt: string;
+  createdAt: string;
+  createdBy: string;
+  acceptedByUid?: string;
+}
+
+export interface CompanyAnalyticsSnapshot {
+  companyId: string;
+  period: string;
+  impressions: number;
+  engagements: number;
+  clicks: number;
+  postsScheduled: number;
+  postsPublished: number;
+  updatedAt: string;
+}
+
+export interface CompanyThemeTokens {
+  primary: string;
+  secondary: string;
+  accent: string;
+  glow: string;
+  glowSoft: string;
+  border: string;
+  panelTint: string;
 }
 
 export interface CompiledContextPayload {

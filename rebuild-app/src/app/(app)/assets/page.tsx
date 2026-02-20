@@ -1,26 +1,46 @@
-﻿import { PageHeader } from '@/components/ui/page-header';
+"use client";
 
-const assets = [
-  { id: 'asset-1', type: 'logo', name: 'Primary logo', tag: 'Brand Core' },
-  { id: 'asset-2', type: 'banner', name: 'Winter hero banner', tag: 'Campaign' },
-  { id: 'asset-3', type: 'reference', name: 'Texture board set', tag: 'Visual Style' },
-  { id: 'asset-4', type: 'mascot', name: 'Fox mascot v2', tag: 'Identity' },
-];
+import Link from 'next/link';
+import { PageHeader } from '@/components/ui/page-header';
+import { useActiveCompany } from '@/lib/hooks/use-active-company';
+import { useCompanyAssets } from '@/lib/hooks/use-company-assets';
 
 export default function AssetsPage() {
+  const { activeCompany } = useActiveCompany();
+  const { assets } = useCompanyAssets();
+
+  if (!activeCompany) {
+    return (
+      <section className="panel">
+        <h3>No active company selected</h3>
+        <Link className="btn-primary" href="/select-company">Choose company</Link>
+      </section>
+    );
+  }
+
   return (
     <div className="space-y-3">
-      <PageHeader title="Assets" subtitle="Content-first asset grid with metadata and quick inspector actions." />
-      <section className="asset-grid">
-        {assets.map((asset) => (
-          <article key={asset.id} className="panel">
-            <div className="asset-thumb" />
-            <h3>{asset.name}</h3>
-            <p>{asset.type.toUpperCase()}</p>
-            <span className="badge">{asset.tag}</span>
-          </article>
-        ))}
-      </section>
+      <PageHeader title={`${activeCompany.name} Assets`} subtitle="Company-scoped asset library and references." />
+      {assets.length ? (
+        <section className="asset-grid">
+          {assets.map((asset) => (
+            <article key={asset.id} className="panel">
+              <div className="asset-thumb" style={asset.thumbnailUrl ? { backgroundImage: `url(${asset.thumbnailUrl})`, backgroundSize: 'cover' } : undefined} />
+              <h3>{asset.type.toUpperCase()}</h3>
+              <p>{asset.tags.join(', ') || 'No tags'}</p>
+              <span className="badge">{asset.createdAt}</span>
+            </article>
+          ))}
+        </section>
+      ) : (
+        <section className="panel empty-state">
+          <h3>No assets yet</h3>
+          <p>Upload logos, banners, mascots, and references in the intake wizard.</p>
+          <div className="button-row">
+            <Link className="btn-primary" href={`/companies/${activeCompany.id}/intake`}>Open intake uploads</Link>
+          </div>
+        </section>
+      )}
     </div>
   );
 }
