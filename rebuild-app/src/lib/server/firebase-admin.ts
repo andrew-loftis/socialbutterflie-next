@@ -1,37 +1,38 @@
-import { getApps, initializeApp, cert, type App } from 'firebase-admin/app';
-import { getAuth, type Auth } from 'firebase-admin/auth';
-import { getFirestore, type Firestore } from 'firebase-admin/firestore';
+// Temporary fallback for local Netlify deploy on Windows where firebase-admin symlinking fails.
+// Re-enable firebase-admin in CI/Linux build environments for server-side token verification.
 
-function readEnv(name: string) {
-  const value = process.env[name];
-  return value && value.trim().length > 0 ? value : null;
-}
+type AdminDocSnapshot = {
+  id: string;
+  exists?: boolean;
+  data: () => Record<string, unknown> | undefined;
+};
 
-function normalizePrivateKey(value: string | null) {
-  if (!value) return null;
-  return value.replace(/\\n/g, '\n');
-}
+type AdminQuerySnapshot = {
+  docs: AdminDocSnapshot[];
+};
 
-function hasAdminEnv() {
-  return Boolean(readEnv('FIREBASE_PROJECT_ID') && readEnv('FIREBASE_CLIENT_EMAIL') && readEnv('FIREBASE_PRIVATE_KEY'));
-}
+type AdminCollectionRef = {
+  doc: (id?: string) => AdminDocRef;
+  get: () => Promise<AdminQuerySnapshot | undefined>;
+  orderBy: (field: string, direction?: 'asc' | 'desc') => AdminCollectionRef;
+  limit: (value: number) => AdminCollectionRef;
+};
 
-const adminConfig = hasAdminEnv()
-  ? {
-      projectId: readEnv('FIREBASE_PROJECT_ID')!,
-      clientEmail: readEnv('FIREBASE_CLIENT_EMAIL')!,
-      privateKey: normalizePrivateKey(readEnv('FIREBASE_PRIVATE_KEY'))!,
-    }
-  : null;
+type AdminDocRef = {
+  id?: string;
+  get: () => Promise<AdminDocSnapshot | undefined>;
+  set: (value: unknown, options?: unknown) => Promise<void>;
+  collection: (path: string) => AdminCollectionRef;
+};
 
-export const firebaseAdminApp: App | null = adminConfig
-  ? getApps()[0] ||
-    initializeApp({
-      credential: cert(adminConfig),
-      projectId: adminConfig.projectId,
-    })
-  : null;
+type AdminAuth = {
+  verifyIdToken: (token: string) => Promise<Record<string, unknown> & { uid: string }>;
+};
 
-export const firebaseAdminAuth: Auth | null = firebaseAdminApp ? getAuth(firebaseAdminApp) : null;
-export const firebaseAdminDb: Firestore | null = firebaseAdminApp ? getFirestore(firebaseAdminApp) : null;
+type AdminDb = {
+  collection: (path: string) => AdminCollectionRef;
+};
 
+export const firebaseAdminApp: null = null;
+export const firebaseAdminAuth: AdminAuth | null = null;
+export const firebaseAdminDb: AdminDb | null = null;
