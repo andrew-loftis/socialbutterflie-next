@@ -8,6 +8,22 @@ A modern, dark, Netlify-hosted social scheduler with:
 - AI captions & hashtag packs (OpenAI)
 - Netlify Scheduled Functions to auto-post
 
+## Rebuild Track (Active)
+
+The sequential implementation for the new product architecture is now in:
+- `rebuild-app/` (Next.js App Router + Firebase-oriented rebuild workspace)
+- `Rebuild Plans/MASTER_CONTEXT.md`
+- `Rebuild Plans/DECISION_LOG.md`
+- `Rebuild Plans/PHASE_STATUS.md`
+
+Run rebuild workspace:
+
+```pwsh
+Set-Location rebuild-app
+npm install
+npm run dev
+```
+
 > **Status:** This is a working starter. Configure environment vars and Supabase to go live.
 
 ## 🧭 Prerequisites
@@ -141,6 +157,7 @@ Copy values from `.env.example` for the expected keys/redirects.
 - FullCalendar theming lives in the same stylesheet with prefixed selectors (`.fc ...`). If you introduce additional calendar instances, they inherit automatically; to scope, wrap in a container class.
 - All AI modal logic and calendar operations are in `js/app.js`. Consider splitting into modules if file growth continues (e.g., `ai.js`, `calendar.js`, `frameio.js`).
 - Netlify Functions act as a thin BFF (Backend For Frontend) over Supabase + external APIs; they intentionally avoid heavy validation layers for iteration speed. Introduce Zod/Yup if contracts start drifting.
+- Product direction and execution mapping for the "Vista on steroids" model is tracked in `PRODUCT_BLUEPRINT.md`.
 
 ## 🧪 Future Hardening
 
