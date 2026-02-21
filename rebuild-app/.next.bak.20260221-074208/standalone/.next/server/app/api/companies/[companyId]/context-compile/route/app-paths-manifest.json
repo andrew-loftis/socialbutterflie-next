@@ -1,0 +1,3 @@
+{
+  "/api/companies/[companyId]/context-compile/route": "app/api/companies/[companyId]/context-compile/route.js"
+}
