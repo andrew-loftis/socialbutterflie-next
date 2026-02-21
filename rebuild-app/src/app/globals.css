@@ -1482,7 +1482,25 @@ textarea {
   display: grid;
   align-content: space-between;
   gap: 10px;
-  padding: 12px;
+  /* Use variables so clipped tiles can increase safe padding without duplicating styles. */
+  --tile-pad-top: 12px;
+  --tile-pad-right: 12px;
+  --tile-pad-bottom: 12px;
+  --tile-pad-left: 12px;
+  padding: var(--tile-pad-top) var(--tile-pad-right) var(--tile-pad-bottom) var(--tile-pad-left);
+}
+
+.company-select-tile.has-clip .company-select-content {
+  /*
+    The selector uses parallelogram clip-paths like:
+    polygon(12% 0%, 100% 0%, 88% 100%, 0% 100%)
+    Those diagonals will clip content near the left edge (top) and right edge (bottom).
+    Provide a responsive safe area so text/buttons never intersect the clipped corners.
+  */
+  --tile-pad-top: 14px;
+  --tile-pad-bottom: 14px;
+  --tile-pad-left: clamp(20px, 6vw, 56px);
+  --tile-pad-right: clamp(16px, 4vw, 44px);
 }
 
 .company-select-top {

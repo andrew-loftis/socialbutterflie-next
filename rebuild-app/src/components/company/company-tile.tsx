@@ -35,7 +35,7 @@ export function CompanyTile({
 }: CompanyTileProps) {
   return (
     <article
-      className={`company-select-tile ${selected ? 'selected' : 'tile-deemphasized'} ${featured ? 'featured' : ''}`}
+      className={`company-select-tile ${selected ? 'selected' : 'tile-deemphasized'} ${featured ? 'featured' : ''} ${clipPath ? 'has-clip' : ''}`}
       style={{
         ...style,
         clipPath: clipPath || undefined,
