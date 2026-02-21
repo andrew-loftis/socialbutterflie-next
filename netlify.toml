@@ -1,7 +1,8 @@
 [build]
   base = "rebuild-app"
   command = "npm run build"
-  publish = "rebuild-app/.next"
+  # `publish` is relative to `base`, so this must be ".next" (not "rebuild-app/.next").
+  publish = ".next"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
