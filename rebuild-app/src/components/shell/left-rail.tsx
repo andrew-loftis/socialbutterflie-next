@@ -5,10 +5,19 @@ import { usePathname } from 'next/navigation';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import { navItems } from '@/components/shell/nav-items';
+import { useAuth } from '@/lib/firebase/auth-provider';
 
 export function LeftRail() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const { user } = useAuth();
+
+  const initials = (user?.displayName ?? user?.email ?? '?')
+    .split(/[\s@]/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s: string) => s[0].toUpperCase())
+    .join('');
 
   return (
     <aside className={`rail ${collapsed ? 'rail-collapsed' : ''}`}>
@@ -44,8 +53,15 @@ export function LeftRail() {
         })}
       </nav>
 
-      {/* Footer / collapse toggle */}
+      {/* Footer: user + collapse toggle */}
       <div className="rail-footer">
+        <Link href="/profile" className="rail-user" title={collapsed ? (user?.displayName ?? user?.email ?? 'Profile') : undefined}>
+          <div className="rail-user-avatar">{initials}</div>
+          <div className="rail-user-info">
+            <span className="rail-user-name">{user?.displayName ?? 'Account'}</span>
+            <span className="rail-user-email">{user?.email ?? ''}</span>
+          </div>
+        </Link>
         <button
           type="button"
           className="rail-toggle"

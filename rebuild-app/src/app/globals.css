@@ -165,7 +165,8 @@ button {
 }
 
 .app-shell {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   display: grid;
   grid-template-columns: auto 1fr;
 }
@@ -346,8 +347,8 @@ button {
   grid-template-rows: auto 1fr;
   gap: 0;
   position: relative;
+  height: 100vh;
   overflow: hidden;
-  min-height: 100vh;
 }
 
 .shell-main::before {
@@ -367,11 +368,16 @@ button {
 }
 
 .shell-inner {
-  padding: 0 16px 16px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px;
   display: grid;
   gap: 16px;
   position: relative;
   z-index: 1;
+  align-content: start;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
 }
 
 .shell-grid {
@@ -594,7 +600,7 @@ button {
 
 .inspector {
   position: sticky;
-  top: calc(62px + 14px);
+  top: 0;
   max-height: calc(100vh - 62px - 32px);
   overflow-y: auto;
   scrollbar-width: thin;
@@ -663,6 +669,13 @@ button {
   border: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.04);
   color: var(--muted);
+}
+
+/* ── Page‑level stack wrapper (replaces Tailwind space-y-3) ── */
+.page {
+  display: grid;
+  gap: 14px;
+  align-content: start;
 }
 
 .stats-grid {
@@ -741,6 +754,61 @@ button {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
+
+/* ── Rail user / profile area ── */
+.rail-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255,255,255,0.025);
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color 0.18s ease, background 0.18s ease;
+  overflow: hidden;
+}
+.rail-user:hover {
+  border-color: var(--company-border);
+  background: rgba(255,255,255,0.05);
+}
+.rail-user-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--company-accent), var(--company-primary));
+  display: grid;
+  place-items: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #050e20;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.rail-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+.rail-user-name {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rail-user-email {
+  font-size: 0.64rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rail-collapsed .rail-user-info { display: none; }
 
 .grid-3 {
   display: grid;
@@ -1744,6 +1812,7 @@ textarea {
   .rail-brand { border-bottom: none; padding: 0; margin-bottom: 0; }
   .page-header { flex-direction: column; }
   .grid-two, .selector-bottom-grid { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .form-grid.two-col { grid-template-columns: 1fr; }
   .two-col-span { grid-column: auto; }
