@@ -1,7 +1,16 @@
-﻿import { getApp, getApps, initializeApp } from 'firebase/app';
+import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+
+const REQUIRED_FIREBASE_PUBLIC_KEYS = [
+  'NEXT_PUBLIC_FIREBASE_API_KEY',
+  'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
+  'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
+  'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
+  'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
+  'NEXT_PUBLIC_FIREBASE_APP_ID',
+] as const;
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -15,6 +24,14 @@ const firebaseConfig = {
 export const hasFirebaseClientConfig = Boolean(
   firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.appId
 );
+
+export function missingFirebaseClientConfigKeys(): string[] {
+  const missing: string[] = [];
+  for (const key of REQUIRED_FIREBASE_PUBLIC_KEYS) {
+    if (!process.env[key]) missing.push(key);
+  }
+  return missing;
+}
 
 export function getFirebaseClientApp() {
   if (!hasFirebaseClientConfig) return null;

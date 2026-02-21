@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAppState } from '@/components/shell/app-state';
+import { FirebaseSetupScreen } from '@/components/auth/firebase-setup-screen';
 import { hasFirebaseClientConfig } from '@/lib/firebase/client';
 import { useAuth } from '@/lib/firebase/auth-provider';
 
@@ -33,7 +34,7 @@ export function CompanyGate({ children }: { children: React.ReactNode }) {
   }, [appContext.activeCompanyId, appContext.companyGateSeenInSession, companies, loading, router, user]);
 
   if (!hasFirebaseClientConfig) {
-    return <>{children}</>;
+    return <FirebaseSetupScreen />;
   }
 
   if (loading) {

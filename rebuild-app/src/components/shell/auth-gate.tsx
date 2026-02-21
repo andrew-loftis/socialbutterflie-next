@@ -1,6 +1,7 @@
 "use client";
 
 import { AuthScreen } from '@/components/auth/auth-screen';
+import { FirebaseSetupScreen } from '@/components/auth/firebase-setup-screen';
 import { hasFirebaseClientConfig } from '@/lib/firebase/client';
 import { useAuth } from '@/lib/firebase/auth-provider';
 
@@ -12,7 +13,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   }
 
   if (!hasFirebaseClientConfig) {
-    return <>{children}</>;
+    return <FirebaseSetupScreen />;
   }
 
   if (user) {
