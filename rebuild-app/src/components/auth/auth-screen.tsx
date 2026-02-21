@@ -27,16 +27,36 @@ export function AuthScreen({
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const oauthButtons: Array<{ provider: OAuthProviderId; label: string; icon?: React.ReactNode }> = [
-    { provider: 'google', label: 'Google' },
-    { provider: 'microsoft', label: 'Microsoft' },
+  const oauthButtons: Array<{ provider: OAuthProviderId; label: string; icon: React.ReactNode }> = [
+    {
+      provider: 'google',
+      label: 'Google',
+      icon: (
+        <span className="grid h-4 w-4 place-items-center rounded-sm bg-white/10 text-[10px] font-bold text-[var(--muted)]">
+          G
+        </span>
+      ),
+    },
+    {
+      provider: 'microsoft',
+      label: 'Microsoft',
+      icon: (
+        <span className="grid h-4 w-4 place-items-center rounded-sm bg-white/10 text-[10px] font-bold text-[var(--muted)]">
+          M
+        </span>
+      ),
+    },
     { provider: 'github', label: 'GitHub', icon: <Github className="h-4 w-4" /> },
     { provider: 'apple', label: 'Apple', icon: <Apple className="h-4 w-4" /> },
   ];
 
   return (
     <div className="flex min-h-[100dvh] items-center justify-center px-4 py-10">
-      <GlassCard accent className="w-full max-w-md p-5 sm:p-6">
+      <GlassCard
+        accent
+        className="w-full max-w-md !block"
+        style={{ padding: 22 }}
+      >
         <div className="flex items-start justify-between gap-3">
           <div>
             <h1 className="text-[1.15rem] font-semibold leading-tight">{title}</h1>
@@ -160,7 +180,7 @@ export function AuthScreen({
             <div className="h-px flex-1 bg-[var(--border-subtle)]" />
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {oauthButtons.map((entry) => (
               <button
                 key={entry.provider}
@@ -168,7 +188,7 @@ export function AuthScreen({
                 type="button"
                 onClick={() => signInOAuth(entry.provider).catch((err) => setError(mapFirebaseError(err, 'auth')))}
               >
-                {entry.icon ? entry.icon : <span className="h-4 w-4 rounded-sm bg-white/10" />}
+                {entry.icon}
                 Continue with {entry.label}
               </button>
             ))}
