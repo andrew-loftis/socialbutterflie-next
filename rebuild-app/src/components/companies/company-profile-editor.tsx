@@ -9,11 +9,11 @@ function stringify(value: unknown) {
   return JSON.stringify(value, null, 2);
 }
 
-function parseOrKeep(raw: string, fallback: unknown) {
+function parseOrThrow(raw: string) {
   try {
     return JSON.parse(raw);
   } catch {
-    return fallback;
+    throw new Error('Invalid JSON');
   }
 }
 
@@ -36,15 +36,41 @@ export function CompanyProfileEditor({ initialCompany }: { initialCompany: Compa
 
   const sectionNames = useMemo(() => ['identity', 'voice', 'visual', 'audience', 'content'] as const, []);
 
+  const [draftSections, setDraftSections] = useState<Record<(typeof sectionNames)[number], string>>(() => ({
+    identity: stringify(initialCompany.sections.identity),
+    voice: stringify(initialCompany.sections.voice),
+    visual: stringify(initialCompany.sections.visual),
+    audience: stringify(initialCompany.sections.audience),
+    content: stringify(initialCompany.sections.content),
+  }));
+
+  const [draftPromptPacks, setDraftPromptPacks] = useState(() => stringify(initialCompany.promptPacks));
+
   async function saveCompanyProfile() {
     setSaving(true);
     setStatus(null);
     try {
+      const parsedSections: CompanySectionState = {
+        identity: parseOrThrow(draftSections.identity),
+        voice: parseOrThrow(draftSections.voice),
+        visual: parseOrThrow(draftSections.visual),
+        audience: parseOrThrow(draftSections.audience),
+        content: parseOrThrow(draftSections.content),
+      };
+
+      const parsedPromptPacks = parseOrThrow(draftPromptPacks) as CompanyProfile['promptPacks'];
+
+      const nextCompanyBase: CompanyProfile = {
+        ...company,
+        sections: parsedSections,
+        promptPacks: parsedPromptPacks,
+      };
+
       const completion = Math.min(
         100,
         Math.round(
           (sectionNames.reduce((acc, section) => {
-            const hasAny = Object.values(company.sections[section]).some((value) =>
+            const hasAny = Object.values(nextCompanyBase.sections[section]).some((value) =>
               Array.isArray(value) ? value.length > 0 : String(value || '').trim().length > 0
             );
             return acc + (hasAny ? 20 : 0);
@@ -53,9 +79,9 @@ export function CompanyProfileEditor({ initialCompany }: { initialCompany: Compa
       );
 
       const next: CompanyProfile = {
-        ...company,
+        ...nextCompanyBase,
         completionScore: completion,
-        aiContextCompiled: compileSummary(company),
+        aiContextCompiled: compileSummary(nextCompanyBase),
         updatedAt: new Date().toISOString(),
         updatedBy: appContext.userId,
       };
@@ -65,7 +91,8 @@ export function CompanyProfileEditor({ initialCompany }: { initialCompany: Compa
       setCompanies((prev) => prev.map((entry) => (entry.id === next.id ? next : entry)));
       setStatus('Saved profile changes.');
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Save failed');
+      const message = error instanceof Error ? error.message : 'Save failed';
+      setStatus(message.startsWith('Invalid JSON') ? 'Fix invalid JSON (must be valid before saving).' : message);
     } finally {
       setSaving(false);
     }
@@ -76,18 +103,12 @@ export function CompanyProfileEditor({ initialCompany }: { initialCompany: Compa
       {sectionNames.map((section) => (
         <article className="panel" key={section}>
           <h3>{section.charAt(0).toUpperCase() + section.slice(1)}</h3>
-          <p className="text-sm text-[var(--muted)]">Edit section JSON directly for now.</p>
+          <p className="text-sm text-[var(--muted)]">Edit section JSON. Changes are validated when you save.</p>
           <textarea
-            value={stringify(company.sections[section])}
+            value={draftSections[section]}
             onChange={(event) => {
-              const nextValue = parseOrKeep(event.target.value, company.sections[section]) as CompanySectionState[typeof section];
-              setCompany((prev) => ({
-                ...prev,
-                sections: {
-                  ...prev.sections,
-                  [section]: nextValue,
-                },
-              }));
+              const raw = event.target.value;
+              setDraftSections((prev) => ({ ...prev, [section]: raw }));
             }}
           />
         </article>
@@ -96,10 +117,9 @@ export function CompanyProfileEditor({ initialCompany }: { initialCompany: Compa
       <article className="panel two-col-span">
         <h3>Prompt packs</h3>
         <textarea
-          value={stringify(company.promptPacks)}
+          value={draftPromptPacks}
           onChange={(event) => {
-            const nextValue = parseOrKeep(event.target.value, company.promptPacks) as CompanyProfile['promptPacks'];
-            setCompany((prev) => ({ ...prev, promptPacks: nextValue }));
+            setDraftPromptPacks(event.target.value);
           }}
         />
         <div className="button-row">

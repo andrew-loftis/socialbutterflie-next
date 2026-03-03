@@ -1,12 +1,16 @@
 ﻿"use client";
 
 import { CommandBar } from '@/components/shell/command-bar';
+import { InteractionUnblocker } from '@/components/shell/interaction-unblocker';
 import { InspectorPanel } from '@/components/shell/inspector-panel';
 import { LeftRail } from '@/components/shell/left-rail';
+import { RuntimeErrorToast } from '@/components/shell/runtime-error-toast';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="app-shell">
+      <InteractionUnblocker />
+      <RuntimeErrorToast />
       <LeftRail />
       <div className="shell-main">
         <CommandBar />

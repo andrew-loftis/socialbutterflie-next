@@ -4,7 +4,9 @@ import Link from 'next/link';
 import { useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { CompanyMembersManager } from '@/components/company/company-members-manager';
+import { CompanyDangerZone } from '@/components/companies/company-danger-zone';
 import { CompanyProfileEditor } from '@/components/companies/company-profile-editor';
+import { ContractEditor } from '@/components/companies/contract-editor';
 import { useAppState } from '@/components/shell/app-state';
 import { PageHeader } from '@/components/ui/page-header';
 
@@ -45,7 +47,9 @@ export default function CompanyDetailPage() {
         }
       />
       <CompanyMembersManager companyId={company.id} />
+      <ContractEditor companyId={company.id} companyName={company.name} />
       <CompanyProfileEditor initialCompany={company} />
+      <CompanyDangerZone company={company} />
     </div>
   );
 }

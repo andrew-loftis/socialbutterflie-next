@@ -24,13 +24,6 @@ export function CompanyGate({ children }: { children: React.ReactNode }) {
       router.replace('/select-company');
       return;
     }
-
-    if (
-      requiresSelection &&
-      !companies.some((company) => company.id === appContext.activeCompanyId)
-    ) {
-      router.replace('/select-company');
-    }
   }, [appContext.activeCompanyId, appContext.companyGateSeenInSession, companies, loading, router, user]);
 
   if (!hasFirebaseClientConfig) {
@@ -50,8 +43,7 @@ export function CompanyGate({ children }: { children: React.ReactNode }) {
     pathname !== '/select-company' &&
     requiresSelection &&
     (!appContext.companyGateSeenInSession ||
-      !appContext.activeCompanyId ||
-      !companies.some((company) => company.id === appContext.activeCompanyId))
+      !appContext.activeCompanyId)
   ) {
     return <div className="flex min-h-screen items-center justify-center text-sm text-[var(--muted)]">Loading company workspace...</div>;
   }

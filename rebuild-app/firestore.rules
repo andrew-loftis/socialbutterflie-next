@@ -77,6 +77,12 @@ service cloud.firestore {
       return isActiveMember(workspaceId, companyId) && roleRank(memberRole(workspaceId, companyId)) >= 4;
     }
 
+    function isCompanyCreator(workspaceId, companyId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/workspaces/$(workspaceId)/companies/$(companyId))
+        && get(/databases/$(database)/documents/workspaces/$(workspaceId)/companies/$(companyId)).data.createdBy == uid();
+    }
+
     function isWorkspaceAdmin(workspaceId) {
       return isActiveWorkspaceMember(workspaceId) && roleRank(workspaceRole(workspaceId)) >= 4;
     }
@@ -100,9 +106,15 @@ service cloud.firestore {
         allow read: if canReadCompany(workspaceId, companyId) || (signedIn() && resource.data.createdBy == uid());
         allow create: if signedIn() && request.resource.data.createdBy == uid() && request.resource.data.workspaceId == workspaceId;
         allow update: if canEditCompany(workspaceId, companyId);
-        allow delete: if canManageCompany(workspaceId, companyId);
+        allow delete: if canManageCompany(workspaceId, companyId) || isCompanyCreator(workspaceId, companyId);
 
         match /members/{memberId} {
+          // Allow a user to read their own membership doc so collectionGroup(members) queries
+          // (used for company listing) can succeed without circular rule evaluation.
+          allow read: if signedIn()
+            && memberId == uid()
+            && resource.data.uid == uid();
+
           allow read: if canReadCompany(workspaceId, companyId);
 
           // Allow the company creator to bootstrap their own admin membership immediately after creating the company.
@@ -132,12 +144,12 @@ service cloud.firestore {
             && request.resource.data.email == authEmail()
             && request.resource.data.role == get(/databases/$(database)/documents/invite_tokens/$(request.resource.data.inviteToken)).data.role;
 
-          allow update, delete: if canManageCompany(workspaceId, companyId);
+          allow update, delete: if canManageCompany(workspaceId, companyId) || isCompanyCreator(workspaceId, companyId);
         }
 
         match /invites/{inviteId} {
           allow read: if canReadCompany(workspaceId, companyId);
-          allow create, delete: if canManageCompany(workspaceId, companyId);
+          allow create, delete: if canManageCompany(workspaceId, companyId) || isCompanyCreator(workspaceId, companyId);
 
           // Invited user can mark their token-id invite as accepted/expired (limited patch).
           allow update: if canManageCompany(workspaceId, companyId)
@@ -157,6 +169,12 @@ service cloud.firestore {
             );
         }
 
+        // ── Social connections (OAuth tokens — editors+ to write, members to read) ──
+        match /connections/{connectionId} {
+          allow read: if canReadCompany(workspaceId, companyId);
+          allow create, update, delete: if canEditCompany(workspaceId, companyId);
+        }
+
         match /{document=**} {
           allow read: if canReadCompany(workspaceId, companyId);
           allow write: if canEditCompany(workspaceId, companyId);
@@ -171,6 +189,23 @@ service cloud.firestore {
       match /usageMeters/{meterId} {
         allow read: if isActiveWorkspaceMember(workspaceId);
         allow create, update, delete: if roleRank(workspaceRole(workspaceId)) >= 3;
+      }
+
+      // ── Notifications (workspace-scoped, per-recipient) ──
+      match /notifications/{notifId} {
+        // Users can read their own notifications
+        allow read: if signedIn() && resource.data.recipientId == uid();
+        // Any active workspace member can create notifications (for @mention, approval, etc.)
+        allow create: if isActiveWorkspaceMember(workspaceId);
+        // Recipients can update their own notifications (mark read, dismiss)
+        allow update, delete: if signedIn() && resource.data.recipientId == uid();
+      }
+
+      // ── Per-user workspace settings (notification prefs, dashboard layouts) ──
+      match /users/{userId} {
+        match /{document=**} {
+          allow read, write: if signedIn() && request.auth.uid == userId;
+        }
       }
     }
 

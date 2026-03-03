@@ -14,13 +14,14 @@ const sectionLabels = ['Identity', 'Voice', 'Visual', 'Audience', 'Content'];
 
 export function CompanyGrid() {
   const { user } = useAuth();
-  const { appContext, companies, setCompanies, setActiveCompany, markCompanyGateSeen } = useAppState();
+  const { appContext, companies, companiesError, setCompanies, setActiveCompany, markCompanyGateSeen } = useAppState();
   const [createName, setCreateName] = useState('');
   const [primary, setPrimary] = useState('#5ba0ff');
   const [secondary, setSecondary] = useState('#2f436b');
   const [accent, setAccent] = useState('#98c2ff');
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const statusMessage = status || companiesError;
 
   const sortedCompanies = useMemo(() => {
     return [...companies].sort((a, b) => a.name.localeCompare(b.name));
@@ -100,7 +101,7 @@ export function CompanyGrid() {
             {loading ? 'Creating...' : 'Create Company'}
           </button>
         </div>
-        {status ? <p className="text-sm text-[var(--muted)]">{status}</p> : null}
+        {statusMessage ? <p className="text-sm text-[var(--muted)]">{statusMessage}</p> : null}
       </section>
 
       {sortedCompanies.length ? (

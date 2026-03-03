@@ -1,6 +1,6 @@
 "use client";
 
-import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { collection, onSnapshot, query } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { useAppState } from '@/components/shell/app-state';
 import { firestore } from '@/lib/firebase/client';
@@ -10,7 +10,11 @@ export type CompanyPost = {
   status: 'draft' | 'in_review' | 'scheduled' | 'published' | 'failed';
   caption: string;
   scheduledFor?: string;
+  /** Single platform (legacy) */
   platform?: string;
+  /** Multi-platform targets (preferred) */
+  platforms?: string[];
+  createdAt?: string;
 };
 
 const memoryPosts: Record<string, CompanyPost[]> = {};
@@ -32,14 +36,27 @@ export function useCompanyPosts() {
       activeCompanyId,
       'posts'
     );
-    const q = query(postsRef, orderBy('scheduledFor', 'asc'));
+    // No orderBy on optional field — Firestore excludes docs missing that field.
+    // Sort client-side instead: scheduled/published first (by date), drafts last.
+    const q = query(postsRef);
     return onSnapshot(q, (snap) => {
-      setPosts(
-        snap.docs.map((entry) => ({
-          id: entry.id,
-          ...(entry.data() as Omit<CompanyPost, 'id'>),
-        }))
-      );
+      const allPosts = snap.docs.map((entry) => ({
+        id: entry.id,
+        ...(entry.data() as Omit<CompanyPost, 'id'>),
+      }));
+      // Sort: scheduled asc (nulls last), then by status priority
+      const STATUS_ORDER: Record<string, number> = {
+        published: 0, scheduled: 1, in_review: 2, draft: 3, failed: 4,
+      };
+      allPosts.sort((a, b) => {
+        if (a.scheduledFor && b.scheduledFor) {
+          return a.scheduledFor.localeCompare(b.scheduledFor);
+        }
+        if (a.scheduledFor) return -1;
+        if (b.scheduledFor) return 1;
+        return (STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9);
+      });
+      setPosts(allPosts);
       setLoaded(true);
     });
   }, [activeCompanyId, appContext.workspaceId]);

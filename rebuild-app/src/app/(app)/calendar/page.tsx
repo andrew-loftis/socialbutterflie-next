@@ -69,6 +69,11 @@ export default function CalendarPage() {
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [filter, setFilter] = useState<Filter>('All');
 
+  function goToToday() {
+    setViewYear(today.getFullYear());
+    setViewMonth(today.getMonth());
+  }
+
   const cells = useMemo(() => buildMonthGrid(viewYear, viewMonth), [viewYear, viewMonth]);
 
   const filteredPosts = useMemo(() => {
@@ -123,13 +128,21 @@ export default function CalendarPage() {
       <section className="panel">
         {/* Month nav */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, position: 'relative', zIndex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button className="btn-ghost btn-icon" type="button" onClick={prevMonth}>
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <h3 style={{ margin: 0 }}>{MONTH_NAMES[viewMonth]} {viewYear}</h3>
+            <h3 style={{ margin: 0, minWidth: 180, textAlign: 'center' }}>{MONTH_NAMES[viewMonth]} {viewYear}</h3>
             <button className="btn-ghost btn-icon" type="button" onClick={nextMonth}>
               <ChevronRight className="h-4 w-4" />
+            </button>
+            <button
+              className="btn-ghost btn-sm"
+              type="button"
+              onClick={goToToday}
+              style={{ marginLeft: 4 }}
+            >
+              Today
             </button>
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
@@ -162,9 +175,15 @@ export default function CalendarPage() {
               >
                 <span className="calendar-day-num">{date.getDate()}</span>
                 {dayPosts.slice(0, 3).map((p) => (
-                  <span key={p.id} className={`calendar-post-pill ${PILL_CLASS[p.status] || ''}`}>
-                    {p.caption?.slice(0, 18) || p.platform || 'Post'}
-                  </span>
+                  <Link
+                    key={p.id}
+                    href={`/review?highlight=${p.id}`}
+                    className={`calendar-post-pill ${PILL_CLASS[p.status] || ''}`}
+                    title={p.caption || p.platform || 'Post'}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {p.caption?.slice(0, 18) || (p.platforms ? p.platforms[0] : p.platform) || 'Post'}
+                  </Link>
                 ))}
                 {dayPosts.length > 3 && (
                   <span className="calendar-more">+{dayPosts.length - 3} more</span>

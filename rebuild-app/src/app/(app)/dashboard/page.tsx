@@ -10,16 +10,24 @@ import {
   Clock,
   Edit3,
   FileStack,
+  FileText,
+  Inbox,
+  LayoutGrid,
+  ListTodo,
+  MessageSquare,
   Sparkles,
   TrendingUp,
+  Zap,
 } from 'lucide-react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 import { StatCard } from '@/components/ui/stat-card';
 import { PageHeader } from '@/components/ui/page-header';
+import { TasksWidget } from '@/components/ui/tasks-widget';
 import { useActiveCompany } from '@/lib/hooks/use-active-company';
 import { useCompanyAnalytics } from '@/lib/hooks/use-company-analytics';
 import { useCompanyPosts } from '@/lib/hooks/use-company-posts';
+import { useCompanyContracts } from '@/lib/hooks/use-company-contracts';
 
 /* ── Sparkline mock data (replaced by real data when available) ── */
 const chartData = [
@@ -59,6 +67,7 @@ export default function DashboardPage() {
   const { activeCompany } = useActiveCompany();
   const { analytics } = useCompanyAnalytics();
   const { posts } = useCompanyPosts();
+  const { activeContracts, progress, getOverallStatus } = useCompanyContracts();
 
   const scheduled  = posts.filter((p) => p.status === 'scheduled').length;
   const inReview   = posts.filter((p) => p.status === 'in_review').length;
@@ -89,6 +98,9 @@ export default function DashboardPage() {
         subtitle="Operational overview · Today"
         actions={
           <>
+            <Link className="btn-ghost btn-sm" href="/dashboard/customize">
+              <LayoutGrid className="h-3.5 w-3.5" /> Customize
+            </Link>
             <Link className="btn-ghost btn-sm" href="/analytics">
               <BarChart3 className="h-3.5 w-3.5" /> Analytics
             </Link>
@@ -140,7 +152,7 @@ export default function DashboardPage() {
               <p className="kicker">Performance</p>
               <h3>Engagement trend · 7 days</h3>
             </div>
-            <span className="badge badge-success">Live</span>
+            <span style={{ fontSize: '0.65rem', color: 'var(--muted)', fontStyle: 'italic', marginTop: 4 }}>sample data</span>
           </div>
           <div style={{ height: 188, marginTop: 4, position: 'relative', zIndex: 1 }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -260,14 +272,145 @@ export default function DashboardPage() {
         </article>
       </div>
 
+      {/* ── Tasks & Contracts row ── */}
+      <div className="grid-two">
+        {/* Tasks widget */}
+        <article className="panel">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 1, marginBottom: 10 }}>
+            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <ListTodo className="h-4 w-4" style={{ color: 'var(--company-primary, var(--accent))' }} />
+              Tasks
+            </h3>
+          </div>
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <TasksWidget />
+          </div>
+        </article>
+
+        {/* Contract tracker widget */}
+        <article className="panel">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative', zIndex: 1, marginBottom: 10 }}>
+            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <FileText className="h-4 w-4" style={{ color: 'var(--company-primary, var(--accent))' }} />
+              Deliverables
+            </h3>
+            <Link className="btn-ghost btn-sm" href={`/companies/${activeCompany.id}`}>Manage</Link>
+          </div>
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            {activeContracts.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {activeContracts.slice(0, 2).map((contract) => {
+                  const contractProgress = progress.filter((p) => p.contractId === contract.id);
+                  return (
+                    <div key={contract.id} style={{
+                      padding: '10px 12px', borderRadius: 10,
+                      background: 'rgba(255,255,255,0.015)',
+                      border: '1px solid var(--border-subtle)',
+                    }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.84rem', marginBottom: 6 }}>
+                        {contract.name}
+                      </div>
+                      {contract.deliverables.slice(0, 3).map((d) => {
+                        const dp = contractProgress.find((p) => p.deliverableId === d.id);
+                        const pct = dp ? Math.min((dp.completed / dp.target) * 100, 100) : 0;
+                        const statusColor = !dp ? 'var(--muted)' :
+                          dp.status === 'on_track' ? '#3dd68c' :
+                          dp.status === 'at_risk' ? '#f5a623' :
+                          dp.status === 'behind' ? '#ff5c5c' : '#5ba0ff';
+                        return (
+                          <div key={d.id} style={{ marginBottom: 6 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', marginBottom: 2 }}>
+                              <span style={{ color: 'var(--muted)' }}>{d.customLabel || d.type.replace('_', ' ')}</span>
+                              <span style={{ fontWeight: 600 }}>{dp ? `${dp.completed}/${dp.target}` : '—'}</span>
+                            </div>
+                            <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                              <div style={{ height: '100%', borderRadius: 2, background: statusColor, width: `${pct}%`, transition: 'width 0.4s' }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '16px 0', color: 'var(--muted)', fontSize: '0.82rem' }}>
+                <FileText className="h-5 w-5" style={{ margin: '0 auto 6px', opacity: 0.4 }} />
+                <p>No active contracts.</p>
+                <Link className="btn-ghost btn-sm" href={`/companies/${activeCompany.id}`}>Create contract</Link>
+              </div>
+            )}
+          </div>
+        </article>
+      </div>
+
+      {/* ── Automations CTA ── */}
+      <article className="panel" style={{ borderLeft: '3px solid #f5a623' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Zap className="h-5 w-5" style={{ color: '#f5a623' }} />
+            <div>
+              <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>Automations</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Set up comment-trigger DM rules to auto-engage your audience.</div>
+            </div>
+          </div>
+          <Link className="btn-ghost btn-sm" href="/automations">
+            <Zap className="h-3.5 w-3.5" /> Manage Rules
+          </Link>
+        </div>
+      </article>
+
+      {/* ── Inbox CTA ── */}
+      <article className="panel" style={{ borderLeft: '3px solid var(--company-primary, var(--accent))' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Inbox className="h-5 w-5" style={{ color: 'var(--company-primary, var(--accent))' }} />
+            <div>
+              <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>Social Inbox</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Comments, DMs, mentions & reviews across all connected channels.</div>
+            </div>
+          </div>
+          <Link className="btn-primary btn-sm" href="/inbox">
+            <MessageSquare className="h-3.5 w-3.5" /> Open Inbox
+          </Link>
+        </div>
+      </article>
+
+      {/* ── Recent posts ── */}
+      {posts.length > 0 && (
+        <article className="panel">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 1, marginBottom: 10 }}>
+            <h3 style={{ margin: 0 }}>Recent posts</h3>
+            <Link className="btn-ghost btn-sm" href="/review">View all</Link>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, position: 'relative', zIndex: 1 }}>
+            {posts.slice(0, 5).map((post) => (
+              <div
+                key={post.id}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, background: 'var(--surface-2)', border: '1px solid var(--border)' }}
+              >
+                <StatusDot status={post.status} />
+                <span style={{ flex: 1, fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {post.caption ? post.caption.slice(0, 80) : '(No caption)'}
+                </span>
+                <span style={{ fontSize: '0.68rem', color: 'var(--muted)', flexShrink: 0 }}>{post.status?.replace('_', ' ')}</span>
+              </div>
+            ))}
+          </div>
+        </article>
+      )}
+
       {/* ── Quick actions row ── */}
       <section className="panel">
         <h3 style={{ position: 'relative', zIndex: 1 }}>Quick Actions</h3>
         <div className="quick-links" style={{ position: 'relative', zIndex: 1 }}>
           <Link href="/build"><Edit3 className="h-3.5 w-3.5" /> Create Post</Link>
+          <Link href="/inbox"><MessageSquare className="h-3.5 w-3.5" /> Inbox</Link>
           <Link href="/calendar"><CalendarDays className="h-3.5 w-3.5" /> Schedule</Link>
           <Link href="/assets"><FileStack className="h-3.5 w-3.5" /> Asset Library</Link>
           <Link href="/analytics"><BarChart3 className="h-3.5 w-3.5" /> Analytics</Link>
+          <Link href="/studio/hashtags"><ListTodo className="h-3.5 w-3.5" /> Hashtag Studio</Link>
+          <Link href="/automations"><Zap className="h-3.5 w-3.5" /> Automations</Link>
           <Link href={`/companies/${activeCompany.id}`}><Sparkles className="h-3.5 w-3.5" /> Company Profile</Link>
           <Link href="/integrations"><Activity className="h-3.5 w-3.5" /> Integrations</Link>
         </div>

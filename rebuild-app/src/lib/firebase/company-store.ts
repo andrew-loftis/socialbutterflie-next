@@ -1,6 +1,7 @@
 import {
   collection,
   collectionGroup,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -9,6 +10,7 @@ import {
   setDoc,
   updateDoc,
   where,
+  writeBatch,
   type Unsubscribe,
 } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
@@ -199,6 +201,7 @@ export function subscribeCompanies(
 
   const companiesById = new Map<string, CompanyProfile>();
   const unsubByCompanyId = new Map<string, Unsubscribe>();
+  let unsubscribeCreatedBy: Unsubscribe | null = null;
 
   function emit() {
     callback([...companiesById.values()].sort((a, b) => a.name.localeCompare(b.name)));
@@ -216,6 +219,11 @@ export function subscribeCompanies(
   const unsubscribeMembership = onSnapshot(
     membershipQuery,
     (snapshot) => {
+      if (unsubscribeCreatedBy) {
+        unsubscribeCreatedBy();
+        unsubscribeCreatedBy = null;
+      }
+
       const desired = new Set<string>();
       for (const docSnap of snapshot.docs) {
         const data = docSnap.data() as Partial<CompanyMember>;
@@ -252,12 +260,39 @@ export function subscribeCompanies(
       emit();
     },
     (error) => {
-      onError?.(mapFirebaseError(error, 'firestore'));
+      const message = mapFirebaseError(error, 'firestore');
+      onError?.(message);
+
+      // If membership listing is blocked (common when rules aren't deployed yet),
+      // fall back to listing companies the user created so data doesn't "disappear" on refresh.
+      if (!unsubscribeCreatedBy) {
+        for (const unsub of unsubByCompanyId.values()) unsub();
+        unsubByCompanyId.clear();
+        companiesById.clear();
+
+        const createdQuery = query(
+          collection(fs, 'workspaces', workspaceId, 'companies'),
+          where('createdBy', '==', userId)
+        );
+
+        unsubscribeCreatedBy = onSnapshot(
+          createdQuery,
+          (snapshot) => {
+            companiesById.clear();
+            for (const docSnap of snapshot.docs) {
+              companiesById.set(docSnap.id, docSnap.data() as CompanyProfile);
+            }
+            emit();
+          },
+          (fallbackError) => onError?.(mapFirebaseError(fallbackError, 'firestore'))
+        );
+      }
     }
   );
 
   return () => {
     unsubscribeMembership();
+    if (unsubscribeCreatedBy) unsubscribeCreatedBy();
     for (const unsub of unsubByCompanyId.values()) unsub();
     unsubByCompanyId.clear();
     companiesById.clear();
@@ -288,6 +323,43 @@ export async function updateCompany(
       ...patch,
       updatedAt: new Date().toISOString(),
     });
+  } catch (error) {
+    throw new Error(mapFirebaseError(error, 'firestore'));
+  }
+}
+
+async function deleteCollectionInBatches(ref: ReturnType<typeof collection>, batchSize = 450) {
+  const fs = firestore;
+  if (!fs) return;
+
+  const snap = await getDocs(ref);
+  const docs = snap.docs;
+  for (let i = 0; i < docs.length; i += batchSize) {
+    const batch = writeBatch(fs);
+    for (const docSnap of docs.slice(i, i + batchSize)) {
+      batch.delete(docSnap.ref);
+    }
+    await batch.commit();
+  }
+}
+
+export async function deleteCompany(workspaceId: string, companyId: string) {
+  const fs = firestore;
+  if (!fs) {
+    const index = memoryCompanies.findIndex((company) => company.id === companyId);
+    if (index >= 0) {
+      memoryCompanies.splice(index, 1);
+      notifyMemoryCompanies();
+    }
+    return;
+  }
+
+  try {
+    // Best-effort cleanup of subcollections (Firestore doesn't cascade deletes).
+    await deleteCollectionInBatches(collection(fs, 'workspaces', workspaceId, 'companies', companyId, 'invites'));
+    await deleteCollectionInBatches(collection(fs, 'workspaces', workspaceId, 'companies', companyId, 'members'));
+
+    await deleteDoc(doc(fs, 'workspaces', workspaceId, 'companies', companyId));
   } catch (error) {
     throw new Error(mapFirebaseError(error, 'firestore'));
   }

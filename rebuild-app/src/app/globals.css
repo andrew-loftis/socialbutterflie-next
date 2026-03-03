@@ -184,6 +184,9 @@ button {
   padding: 12px 10px 14px;
   position: sticky;
   top: 0;
+  /* Keep the rail clickable even if a page accidentally leaves an overlay/backdrop mounted. */
+  z-index: 70;
+  isolation: isolate;
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -381,10 +384,7 @@ button {
 }
 
 .shell-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 308px;
-  gap: 14px;
-  align-items: start;
+  display: block;
   position: relative;
   z-index: 1;
 }
@@ -599,16 +599,31 @@ button {
 }
 
 .inspector {
-  position: sticky;
-  top: 0;
-  max-height: calc(100vh - 62px - 32px);
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* Overlay mode — appears when inspector is open */
+.inspector-overlay {
+  position: fixed;
+  top: 57px; /* below command bar */
+  right: 0;
+  width: 308px;
+  height: calc(100vh - 57px);
+  z-index: 50;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  border-radius: var(--radius) 0 0 var(--radius);
+  border-right: none;
+  animation: inspector-slide-in 0.22s ease;
+}
+
+@keyframes inspector-slide-in {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
 }
 
 .inspector-header {
@@ -1793,8 +1808,7 @@ textarea {
 }
 
 @media (max-width: 1260px) {
-  .shell-grid { grid-template-columns: 1fr; }
-  .inspector { position: static; max-height: none; }
+  .inspector-overlay { position: fixed; width: 100%; border-radius: 0; }
   .grid-3, .studio-layout { grid-template-columns: 1fr; }
   .col-span-2 { grid-column: auto; }
   .asset-grid, .company-grid, .stats-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }

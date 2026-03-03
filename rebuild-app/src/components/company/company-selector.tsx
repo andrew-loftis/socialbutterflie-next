@@ -24,6 +24,7 @@ export function CompanySelector({ nextHref = '/dashboard' }: Props) {
   const {
     appContext,
     companies,
+    companiesError,
     membersByCompany,
     setMembersByCompany,
     setActiveCompany,
@@ -41,6 +42,7 @@ export function CompanySelector({ nextHref = '/dashboard' }: Props) {
   const [inviteRole, setInviteRole] = useState<Role>('client');
   const [invites, setInvites] = useState<CompanyInvite[]>([]);
   const [status, setStatus] = useState<string | null>(null);
+  const statusMessage = status || companiesError;
 
   const totalPages = Math.max(1, Math.ceil(companies.length / PAGE_SIZE));
   const pageStart = page * PAGE_SIZE;
@@ -342,7 +344,7 @@ export function CompanySelector({ nextHref = '/dashboard' }: Props) {
         </article>
       </section>
 
-      {status ? <p className="selector-status">{status}</p> : null}
+      {statusMessage ? <p className="selector-status">{statusMessage}</p> : null}
     </div>
   );
 }

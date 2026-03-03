@@ -6,8 +6,10 @@ import { useAppState } from '@/components/shell/app-state';
 export function InspectorPanel() {
   const { inspector, setInspector } = useAppState();
 
+  if (!inspector) return null;
+
   return (
-    <aside className="inspector">
+    <aside className="inspector inspector-overlay">
       {/* Header */}
       <div className="inspector-header">
         <div>

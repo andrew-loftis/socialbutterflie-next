@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { Copy, Download, ExternalLink, FileImage, Plus, Search, Tag, Trash2, Upload } from 'lucide-react';
+import { Copy, Download, ExternalLink, FileImage, Plus, Search, Tag, Upload, X } from 'lucide-react';
 
 import { PageHeader } from '@/components/ui/page-header';
 import { useActiveCompany } from '@/lib/hooks/use-active-company';
@@ -142,19 +142,38 @@ export default function AssetsPage() {
 
       {/* Detail drawer */}
       {selected && (
-        <div className="panel" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="panel" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 1 }}>
-            <h3>{TYPE_LABELS[selected.type]} Details</h3>
-            <button className="btn-ghost btn-icon" type="button" onClick={() => setSelected(null)}>
-              <Trash2 className="h-3.5 w-3.5" />
+            <h3>{TYPE_LABELS[selected.type] ?? selected.type} Details</h3>
+            <button className="btn-ghost btn-icon" type="button" title="Close" onClick={() => setSelected(null)}>
+              <X className="h-3.5 w-3.5" />
             </button>
           </div>
+
+          {/* Image preview */}
+          {selected.thumbnailUrl || selected.downloadUrl ? (
+            <div style={{ position: 'relative', zIndex: 1, borderRadius: 10, overflow: 'hidden', maxHeight: 360, background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={selected.thumbnailUrl || selected.downloadUrl}
+                alt={selected.type}
+                style={{ maxWidth: '100%', maxHeight: 360, objectFit: 'contain', display: 'block' }}
+                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+              />
+            </div>
+          ) : (
+            <div style={{ position: 'relative', zIndex: 1, borderRadius: 10, background: 'var(--surface-2)', height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <FileImage className="h-10 w-10" style={{ opacity: 0.2 }} />
+            </div>
+          )}
+
           <div style={{ position: 'relative', zIndex: 1, display: 'grid', gap: 6, fontSize: '0.82rem', color: 'var(--muted)' }}>
-            <div><strong style={{ color: 'var(--text)' }}>Type:</strong> {selected.type}</div>
+            <div><strong style={{ color: 'var(--text)' }}>Type:</strong> {TYPE_LABELS[selected.type] ?? selected.type}</div>
             <div><strong style={{ color: 'var(--text)' }}>Tags:</strong> {selected.tags.join(', ') || 'None'}</div>
             <div><strong style={{ color: 'var(--text)' }}>Uploaded:</strong> {selected.createdAt}</div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+            <div style={{ display: 'flex', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
               <a className="btn-ghost btn-sm" href={selected.downloadUrl} download><Download className="h-3.5 w-3.5" /> Download</a>
+              <a className="btn-ghost btn-sm" href={selected.downloadUrl} target="_blank" rel="noreferrer"><ExternalLink className="h-3.5 w-3.5" /> Open full size</a>
               <button className="btn-ghost btn-sm" type="button" onClick={() => navigator.clipboard.writeText(selected.downloadUrl)}><Copy className="h-3.5 w-3.5" /> Copy URL</button>
             </div>
           </div>

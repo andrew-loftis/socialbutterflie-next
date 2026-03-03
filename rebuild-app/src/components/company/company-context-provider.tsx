@@ -11,15 +11,28 @@ import { applyCompanyTheme } from '@/lib/theme/company-theme';
 export function CompanyContextProvider({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const [accessReady, setAccessReady] = useState(false);
+  const [companiesLoadedOnce, setCompaniesLoadedOnce] = useState(false);
   const {
     appContext,
     setAppContext,
     companies,
     setCompanies,
+    companiesError,
+    setCompaniesError,
     setActiveCompany,
     markCompanyGateSeen,
     setMembersByCompany,
   } = useAppState();
+
+  useEffect(() => {
+    if (user) return;
+    setAccessReady(false);
+    setCompaniesLoadedOnce(false);
+    setCompaniesError(null);
+    setCompanies([]);
+    setMembersByCompany({});
+    setActiveCompany(null);
+  }, [setActiveCompany, setCompanies, setCompaniesError, setMembersByCompany, user]);
 
   useEffect(() => {
     if (!user) return;
@@ -57,16 +70,18 @@ export function CompanyContextProvider({ children }: { children: React.ReactNode
       email: user.email || `${user.uid}@local.test`,
     })
       .then(() => {
+        setCompaniesError(null);
         if (active) setAccessReady(true);
       })
-      .catch(() => {
+      .catch((error) => {
+        setCompaniesError(error instanceof Error ? error.message : 'Failed to initialize workspace access');
         if (active) setAccessReady(true);
       });
 
     return () => {
       active = false;
     };
-  }, [appContext.workspaceId, loading, user]);
+  }, [appContext.workspaceId, loading, setCompaniesError, user]);
 
   useEffect(() => {
     if (!user || loading || !accessReady) return;
@@ -76,12 +91,20 @@ export function CompanyContextProvider({ children }: { children: React.ReactNode
       uid: user.uid,
       email: user.email || undefined,
     }).catch(() => undefined);
-    return subscribeCompanies(appContext.workspaceId, user.uid, (next) => setCompanies(next), (message) => {
-      // Surface Firestore permission/config issues during development; production UI can wire this into a toast.
-      console.warn('[companies] subscribe failed:', message);
-      setCompanies([]);
-    });
-  }, [accessReady, appContext.workspaceId, loading, setCompanies, user]);
+    return subscribeCompanies(
+      appContext.workspaceId,
+      user.uid,
+      (next) => {
+        setCompaniesError(null);
+        setCompanies(next);
+        setCompaniesLoadedOnce(true);
+      },
+      (message) => {
+        setCompaniesError(message);
+        setCompaniesLoadedOnce(true);
+      }
+    );
+  }, [accessReady, appContext.workspaceId, loading, setCompanies, setCompaniesError, user]);
 
   useEffect(() => {
     if (!user || !appContext.activeCompanyId) return;
@@ -94,8 +117,13 @@ export function CompanyContextProvider({ children }: { children: React.ReactNode
   useEffect(() => {
     if (!user) return;
 
+    // Don't auto-clear / auto-select until we have at least one snapshot result.
+    // The initial empty array is just "not loaded yet".
+    if (!companiesLoadedOnce) return;
+
     if (!companies.length) {
-      if (appContext.activeCompanyId) {
+      // If we truly have no companies (not a permissions/listing error), clear any stale selection.
+      if (!companiesError && appContext.activeCompanyId) {
         setActiveCompany(null);
       }
       if (!appContext.companyGateSeenInSession) {
@@ -114,17 +142,12 @@ export function CompanyContextProvider({ children }: { children: React.ReactNode
       }
       return;
     }
-
-    if (appContext.activeCompanyId && !companies.some((company) => company.id === appContext.activeCompanyId)) {
-      setActiveCompany(null);
-      if (appContext.companyGateSeenInSession) {
-        markCompanyGateSeen(false);
-      }
-    }
   }, [
     appContext.activeCompanyId,
     appContext.companyGateSeenInSession,
     companies,
+    companiesError,
+    companiesLoadedOnce,
     markCompanyGateSeen,
     setActiveCompany,
     user,

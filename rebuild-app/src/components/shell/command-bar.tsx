@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { ChevronDown, Command, Plus, Search, Sparkles } from 'lucide-react';
+import { ChevronDown, Command, Plus, Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useAppState } from '@/components/shell/app-state';
+import { NotificationCenter } from '@/components/shell/notification-center';
 
 type SearchResult = {
   id: string;
@@ -75,7 +76,7 @@ export function CommandBar() {
           </span>
 
           {/* Dropdown results */}
-          {open && results.length > 0 && (
+          {open && (query.trim().length > 0) && (
             <div
               style={{
                 position: 'absolute',
@@ -91,7 +92,7 @@ export function CommandBar() {
                 boxShadow: 'var(--shadow-3)',
               }}
             >
-              {results.map((r) => (
+              {results.length > 0 ? results.map((r) => (
                 <button
                   key={`${r.kind}-${r.id}`}
                   type="button"
@@ -108,12 +109,16 @@ export function CommandBar() {
                   }}
                   onMouseOver={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'; }}
                   onMouseOut={(e)  => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-                  onClick={() => { router.push(r.href); setOpen(false); }}
+                  onClick={() => { router.push(r.href); setOpen(false); setQuery(''); }}
                 >
                   <div style={{ fontSize: '0.84rem', fontWeight: 500, color: 'var(--text)' }}>{r.title}</div>
                   <div style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>{r.kind}{r.subtitle ? ` · ${r.subtitle}` : ''}</div>
                 </button>
-              ))}
+              )) : (
+                <div style={{ padding: '12px 16px', fontSize: '0.82rem', color: 'var(--muted)', textAlign: 'center' }}>
+                  No results for “{query}”
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -132,11 +137,8 @@ export function CommandBar() {
         </button>
 
         {/* Primary actions */}
-        <div className="topbar-actions">
-          <Link href="/studio" className="btn-ghost btn-sm" style={{ gap: 5 }}>
-            <Sparkles className="h-3.5 w-3.5" />
-            AI Studio
-          </Link>
+        <div className="topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <NotificationCenter />
           <Link href="/build" className="btn-primary btn-sm" style={{ gap: 5 }}>
             <Plus className="h-3.5 w-3.5" />
             New Post

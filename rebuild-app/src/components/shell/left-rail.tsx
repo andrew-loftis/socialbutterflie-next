@@ -1,16 +1,20 @@
 ﻿"use client";
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import { navItems } from '@/components/shell/nav-items';
 import { useAuth } from '@/lib/firebase/auth-provider';
+import { safeNavigate } from '@/lib/navigation/safe-navigate';
+import { useCompanyPosts } from '@/lib/hooks/use-company-posts';
 
 export function LeftRail() {
   const pathname = usePathname();
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const { user } = useAuth();
+  const { posts } = useCompanyPosts();
+  const reviewCount = posts.filter((p) => p.status === 'in_review').length;
 
   const initials = (user?.displayName ?? user?.email ?? '?')
     .split(/[\s@]/)
@@ -38,24 +42,68 @@ export function LeftRail() {
             pathname === item.href ||
             pathname.startsWith(`${item.href}/`);
           return (
-            <Link
+            <a
               key={item.href}
               href={item.href}
               className={`rail-item ${active ? 'active' : ''}`}
               title={collapsed ? item.label : undefined}
+              onClick={(e) => {
+                // Preserve standard browser behaviors (new tab, etc).
+                if (
+                  e.defaultPrevented ||
+                  e.button !== 0 ||
+                  e.metaKey ||
+                  e.ctrlKey ||
+                  e.shiftKey ||
+                  e.altKey
+                ) {
+                  return;
+                }
+
+                e.preventDefault();
+                safeNavigate(router, item.href);
+              }}
             >
-              <span className="rail-item-icon">
+              <span className="rail-item-icon" style={{ position: 'relative' }}>
                 <Icon className="h-[18px] w-[18px]" />
+                {item.href === '/review' && reviewCount > 0 && (
+                  <span style={{
+                    position: 'absolute', top: -5, right: -6,
+                    background: '#f87171', color: '#fff',
+                    borderRadius: 999, fontSize: '0.55rem', fontWeight: 700,
+                    minWidth: 14, height: 14, lineHeight: '14px',
+                    display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', padding: '0 3px',
+                  }}>{reviewCount > 99 ? '99+' : reviewCount}</span>
+                )}
               </span>
               <span className="rail-item-label">{item.label}</span>
-            </Link>
+            </a>
           );
         })}
       </nav>
 
       {/* Footer: user + collapse toggle */}
       <div className="rail-footer">
-        <Link href="/profile" className="rail-user" title={collapsed ? (user?.displayName ?? user?.email ?? 'Profile') : undefined}>
+        <a
+          href="/profile"
+          className="rail-user"
+          title={collapsed ? (user?.displayName ?? user?.email ?? 'Profile') : undefined}
+          onClick={(e) => {
+            if (
+              e.defaultPrevented ||
+              e.button !== 0 ||
+              e.metaKey ||
+              e.ctrlKey ||
+              e.shiftKey ||
+              e.altKey
+            ) {
+              return;
+            }
+            e.preventDefault();
+            safeNavigate(router, '/profile');
+          }}
+        >
           <div className="rail-user-avatar" style={{ overflow: 'hidden' }}>
             {user?.photoURL ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -68,7 +116,7 @@ export function LeftRail() {
             <span className="rail-user-name">{user?.displayName ?? 'Account'}</span>
             <span className="rail-user-email">{user?.email ?? ''}</span>
           </div>
-        </Link>
+        </a>
         <button
           type="button"
           className="rail-toggle"
