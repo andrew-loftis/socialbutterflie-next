@@ -56,6 +56,7 @@ export default function SettingsPage() {
   // UI state
   const [inviteCopied, setInviteCopied] = useState(false);
   const [savedPublish, setSavedPublish] = useState(false);
+  const [savedNotif, setSavedNotif] = useState(false);
 
   const TIMEZONES = [
     'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',

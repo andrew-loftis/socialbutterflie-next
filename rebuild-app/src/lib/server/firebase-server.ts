@@ -12,6 +12,9 @@
  * ---------------------------------------------------------------------------
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+declare const __non_webpack_require__: (id: string) => any;
+
 let adminApp: ReturnType<typeof initializeAdminApp> | null = null;
 let adminDb: ReturnType<typeof getAdminFirestore> | null = null;
 
@@ -19,7 +22,7 @@ let adminDb: ReturnType<typeof getAdminFirestore> | null = null;
 function initializeAdminApp() {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const admin = require('firebase-admin');
+    const admin = __non_webpack_require__('firebase-admin');
     if (admin.apps.length) return admin.apps[0];
     
     const projectId = process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
@@ -49,7 +52,7 @@ function getAdminFirestore() {
   try {
     if (!adminApp) return null;
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const admin = require('firebase-admin');
+    const admin = __non_webpack_require__('firebase-admin');
     return admin.firestore();
   } catch {
     return null;

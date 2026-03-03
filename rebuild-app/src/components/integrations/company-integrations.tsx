@@ -262,7 +262,8 @@ export function CompanyIntegrations({ companyId, companyName }: { companyId: str
       if (match) {
         await deleteConnection(appContext.workspaceId, companyId, match.id);
       } else {
-        await disconnectSocialConnection(user, appContext.workspaceId, { id: match?.id, provider: integration.provider, companyId });
+        // Fallback: call the API disconnect route
+        await disconnectSocialConnection(user, appContext.workspaceId, { provider: integration.provider, companyId });
       }
       setStatus(`${integration.name} disconnected.`);
       setStatusKind('info');

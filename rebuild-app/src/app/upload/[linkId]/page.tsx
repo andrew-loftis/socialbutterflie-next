@@ -9,7 +9,7 @@
  * Route: /upload/[linkId]
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, use } from 'react';
 import {
   CheckCircle2,
   Cloud,
@@ -55,10 +55,11 @@ function formatSize(bytes: number): string {
 /* ── Main Component ── */
 
 export default function UploadPortalPage({
-  params,
+  params: paramsPromise,
 }: {
-  params: { linkId: string };
+  params: Promise<{ linkId: string }>;
 }) {
+  const params = use(paramsPromise);
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
